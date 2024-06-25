@@ -3,6 +3,8 @@ import wfdb
 
 from pathlib import Path
 import pandas as pd
+import datetime
+
 path = r"/home/sebastian/VIP/Mimic-Prep/SampleData/p10000032/s44458630/44458630"
 studyNum = path.split('/')[-1]  #get last study num
 graphTitle = 'Study' + studyNum
@@ -11,21 +13,33 @@ graphTitle = 'Study' + studyNum
 folderNum = 'p10000032'
 paths = list(Path(folderNum).rglob("*.hea"))
 studyData = {'studyNum':[],'date':[],'time':[]}
-
+studyDates = []
+studyTimes = []
 i = 0
 for file in paths:
     #Extract study number
     pathObject = paths[i]
-    studyName = pathObject.name.split('.hea')[0]
+    studyNum = pathObject.name.split('.hea')[0]
+    studyData['studyNum'].append(studyNum)
 
-    print(studyName)
+    print(studyNum)
     study = file.stem
     metadata = wfdb.rdheader(f'{file.parent}/{file.stem}')
     
-    studyData['date'].append(metadata.base_date)
-    studyData['time'].append(metadata.base_time)
-    i = i + 1
+    studyDates.append(metadata.base_date)
+    studyTimes.append(metadata.base_time)
 
+    i = i + 1
+j = 0
+for study in studyDates:
+    studyData['date'].append(studyDates[j].strftime('%Y-%m-%d'))
+    studyData['time'].append(studyTimes[j].strftime('%Y-%m-%d'))
+    j =j + 1
+
+
+    
+
+print(studyData)
 
 
 # rd_record = wfdb.rdrecord(path) 
