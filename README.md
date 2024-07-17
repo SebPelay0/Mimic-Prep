@@ -4,16 +4,22 @@
 
 To install and activate the Conda environment from environment.yml:
 
-```
+```text
 conda env create -f environment.yml
 conda activate ptb-xl-env
 ```
 
 When adding any additional dependencies e.g. numpy, pandas etc.
 
-```
+```text
 conda activate ptb-xl-env
 conda env export > environment.yml
+```
+
+To update the environment list
+
+```text
+conda env update --file environment.yml --prune
 ```
 
 Then make a pull request which will show the changes to the Conda environment in environment.yml
