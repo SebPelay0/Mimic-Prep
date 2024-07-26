@@ -14,18 +14,18 @@ hea_files = list(dataPath.rglob("*.hea"))
 
 print(f"Found {len(hea_files)} .hea files")
 
-studyData = {'studyNum':[], 'date':[], 'time':[]}
+studyData = {"studyNum": [], "date": [], "time": []}
 studyDates = []
 studyTimes = []
 
 for file in hea_files:
     print(f"Processing file {file}")
-    
+
     # Extract study number
     studyNum = file.stem
-    studyData['studyNum'].append(studyNum)
+    studyData["studyNum"].append(studyNum)
     filename = Path(file)
-    filename = filename.with_suffix('')
+    filename = filename.with_suffix("")
 
     # Extract date and times
     metadata = wfdb.rdheader(str(filename))
@@ -33,9 +33,9 @@ for file in hea_files:
     studyTimes.append(metadata.base_time)
 
     # Get file path to produce image
-    filePath = file.with_suffix('')
-    dat_file_path = filePath.with_suffix('.dat')
-    
+    filePath = file.with_suffix("")
+    dat_file_path = filePath.with_suffix(".dat")
+
     # Check if the .dat file exists
     if not dat_file_path.exists():
         print(f"Error: .dat file {dat_file_path} does not exist.")
@@ -46,13 +46,19 @@ for file in hea_files:
     except ValueError as e:
         print(f"Error reading record for {filePath}: {e}")
         continue
-    
-    fig = wfdb.plot_wfdb(record=rd_record, figsize=(24, 18), title=studyNum, ecg_grids='all', return_fig=True)
+
+    fig = wfdb.plot_wfdb(
+        record=rd_record,
+        figsize=(24, 18),
+        title=studyNum,
+        ecg_grids="all",
+        return_fig=True,
+    )
     fig.savefig(studyNum + ".png")
-    
+
 for date, time in zip(studyDates, studyTimes):
     print(date, time)
-    studyData['date'].append(date.strftime('%Y-%m-%d') if date else 'N/A')
-    studyData['time'].append(time.strftime('%H:%M:%S') if time else 'N/A')
+    studyData["date"].append(date.strftime("%Y-%m-%d") if date else "N/A")
+    studyData["time"].append(time.strftime("%H:%M:%S") if time else "N/A")
 
 print("Script ended")
