@@ -13,7 +13,7 @@ classes = [
     "ASMI",
     " LVH",
     "LAFB",
-    "IRBB",
+    "IRBBB",
     "CLBBB",
     "NST_",
     "CRBBB",
@@ -22,14 +22,16 @@ classes = [
 root_dir = Path(__file__).resolve().parent.parent
 dataPath = root_dir / "physionet.org/files"
 
-imagesPath = root_dir / "data"
-
-# make folder for each of the 10 SCP codes
+trainPath = root_dir / "data"
+testPath = root_dir / "test"
+# make train/test folder for each of the 10 SCP codes
 for label in classes:
     class_path = os.path.join(imagesPath, label.strip())
-    if not (os.path.exists(class_path)):
-        os.makedirs(class_path)
+    if not (os.path.exists(trainPath) & os.path.exists(testPath)):
+        os.makedirs(trainPath)
+        os.makedirs(testPath)
         print("made directory" + class_path)
+
 
 # Use rglob to find the main CSV file
 csv_files = list(dataPath.rglob("ptbxl_database.csv"))[0]

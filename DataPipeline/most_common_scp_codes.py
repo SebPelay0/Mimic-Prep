@@ -5,13 +5,15 @@ import pandas as pd
 import csv
 from collections import defaultdict
 import re
+import sys
 
 # Define the directory containing the patient folders
 root_dir = Path(__file__).resolve().parent.parent
 dataPath = root_dir / "physionet.org/files/ptb-xl/1.0.3"
 
 # Use rglob to find the main CSV file
-csv_files = list(dataPath.rglob("ptbxl_database.csv"))[0]
+csv_file_path = root_dir / "SampleData"
+csv_files = list(csv_file_path.rglob("ptbxl_database.csv"))[0]
 
 # Initialise the dictionary that will contain the scp code and counts
 scp_count = defaultdict(int)
@@ -30,9 +32,7 @@ with open(csv_files) as file_obj:
         scp_count[highest_scp_code] += 1
 
 # Sort the dictionary
-top_10_scp_codes = sorted(scp_count.items(), key=lambda item: item[1], reverse=True)[
-    :10
-]
+top_10_scp_codes = sorted(scp_count.items(), key=lambda item: item[1], reverse=True)
 
 print("Top 10 most common scp_codes:")
 for scp_code, count in top_10_scp_codes:
