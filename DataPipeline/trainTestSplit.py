@@ -24,6 +24,35 @@ dataPath = root_dir / 'SampleData'
 trainPath = root_dir / "data"
 testPath = root_dir / "test"
 
+classes = [
+    "NORM",
+    "IMI",
+    "NDT",
+    "ASMI",
+    " LVH",
+    "LAFB",
+    "IRBBB",
+    "CLBBB",
+    "NST_",
+    "CRBBB",
+]
+# Define the directory containing the patient folders
+root_dir = Path(__file__).resolve().parent.parent
+
+dataPath = root_dir / 'SampleData'
+trainPath = root_dir / "data"
+testPath = root_dir / "test"
+
+# make train/test folder for each of the 10 SCP codes
+
+def makeTestFolders(testPath, classes):
+    for label in classes:
+        newTestPath = os.path.join(testPath,label.strip())
+        if not (os.path.exists(newTestPath)):
+            os.makedirs(newTestPath)
+            print(f"New Directories: {newTestPath}")
+
+makeTestFolders(testPath, classes)
 
 #training ratio is a decimal, 0.70 represent a 70/30 train test split
 
