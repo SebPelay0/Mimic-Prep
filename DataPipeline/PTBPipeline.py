@@ -13,7 +13,7 @@ classes = [
     "ASMI",
     " LVH",
     "LAFB",
-    "IRBB",
+    "IRBBB",
     "CLBBB",
     "NST_",
     "CRBBB",
