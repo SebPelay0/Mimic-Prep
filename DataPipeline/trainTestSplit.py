@@ -32,12 +32,18 @@ def trainTestSplit (trainPath, testPath, trainingRatio):
         fileList = getFileList(os.path.join(trainPath, label.strip()))
         if (fileList):
             #this is scuffed af 
+            index = len(fileList)
             for file in fileList:
-                if((random.randint(1,100) >= trainingRatio * 100)):
-                    transferFileAcrossDatasets(fileList[random.randint(1, len(fileList))], testPath)
-                    print('transferred')
-                else:
-                    print('no transfer')
+                try:
+                    if((random.randint(1,100) >= trainingRatio * 100)):
+                        transferFileAcrossDatasets(fileList[random.randint(0, index)], testPath)
+                        index -= 1
+                        print('transferred')
+                    else:
+                        print('no transfer')
+                except Exception as e:
+                    print('File not found')
+                    continue
         
 
-trainTestSplit(trainPath, testPath, 0.99)
+trainTestSplit(trainPath, testPath, 0.70)
