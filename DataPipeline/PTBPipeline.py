@@ -5,10 +5,9 @@ import pandas as pd
 import os
 import re
 import wfdb
-from pathlib import Path
 import csv
 import pandas as pd
-import os
+
 import re
 import matplotlib.pyplot as plt
 import sys
@@ -44,7 +43,6 @@ for label in classes:
         print(f"New Directories: {newTestPath}")
 
 
-sys.exit(1)
 
 # Use rglob to find the main CSV file
 csv_files = list(dataPath.rglob("ptbxl_database.csv"))[0]
@@ -60,7 +58,7 @@ ecg_data_path = dataPath / "physionet.org/files/ptb-xl/1.0.3"
 def all_directories_have_20_images(images_path, classes):
     """Check if all directories have at least 20 images."""
     for label in classes:
-        class_path = images_path / label.strip()
+        class_path = trainPath / label.strip()
         if len(list(class_path.glob("*.png"))) < 20:
             return False
     return True
@@ -123,7 +121,7 @@ with open(csv_files) as file_obj:
             scp_code = re.findall(r"(\w+)':\s*(\d+\.\d+)", scp_code)
             useful_scp_code = max(scp_code, key=lambda x: float(x[1]))
             highest_scp_code, value = useful_scp_code
-            output_dir = imagesPath / highest_scp_code.strip()
+            output_dir = trainPath / highest_scp_code.strip()
 
             output_file_path = output_dir / f"{study_num}.png"
             fig.savefig(output_file_path)
@@ -135,6 +133,6 @@ with open(csv_files) as file_obj:
             continue
 
         # Check if all directories have 20 images
-        if all_directories_have_20_images(imagesPath, classes):
+        if all_directories_have_20_images(trainPath, classes):
             print("All directories have at least 20 images. Stopping.")
             break
