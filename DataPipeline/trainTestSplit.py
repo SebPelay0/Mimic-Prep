@@ -1,23 +1,26 @@
 
 from utils import getFileList, transferFileAcrossDatasets
+from PTBPipeline import classes
 from pathlib import Path
 import os
 import sys
 import random
 #i'll clean this up to variable imports when I get file permissisons
-classes = [
-    "NORM",
-    "IMI",
-    "NDT",
-    "ASMI",
-    " LVH",
-    "LAFB",
-    "IRBBB",
-    "CLBBB",
-    "NST_",
-    "CRBBB",
-]
+# classes = [
+#     "NORM",
+#     "IMI",
+#     "NDT",
+#     "ASMI",
+#     " LVH",
+#     "LAFB",
+#     "IRBBB",
+#     "CLBBB",
+#     "NST_",
+#     "CRBBB",
+# ]
 
+print(classes)
+sys.exit(1)
 root_dir = Path(__file__).resolve().parent.parent
 
 dataPath = root_dir / 'SampleData'
@@ -43,7 +46,7 @@ dataPath = root_dir / 'SampleData'
 trainPath = root_dir / "data"
 testPath = root_dir / "test"
 
-# make train/test folder for each of the 10 SCP codes
+# make test folder for each of the 10 SCP codes
 
 def makeTestFolders(testPath, classes):
     for label in classes:

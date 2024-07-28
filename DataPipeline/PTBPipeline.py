@@ -9,7 +9,7 @@ import csv
 import matplotlib.pyplot as plt
 import wfdb
 import psutil
-
+import pandas as pd
 # Define the directory containing the patient folders
 root_dir = Path(__file__).resolve().parent.parent
 dataPath = root_dir / "physionet.org/files"
@@ -61,38 +61,39 @@ def memory_usage():
 
 
 # Iterate through the rows in the CSV database
-with open(csv_file) as file_obj:
-    reader_obj = csv.reader(file_obj)
-    headers = next(reader_obj)  # Read the header row
-    filename_lr_index = headers.index("filename_lr")  # Get the index of filename_lr
-
-    for row in reader_obj:
+chunksize = 1000  
+for chunk in pd.read_csv(csv_file, chunksize=chunksize):
+# with open(csv_file) as file_obj:
+    for index, row in chunk.iterrows():
         # save only SCP
+        
         scp_code = row[11]
-        filename_lr = row[filename_lr_index]  # Extract the filename_lr
+        filename_lr = row['filename_lr']  # Extract the filename_lr
 
         # Define the path to the corresponding .hea file
         hea_file_path = ecg_data_path / filename_lr
         if not hea_file_path.with_suffix(".hea").exists():
             print(f"Error: .hea file {hea_file_path} does not exist.")
             continue
-
+        
         try:
             # Define the output path for the image
             scp_code = re.findall(r"(\w+)':\s*(\d+\.\d+)", scp_code)
             useful_scp_code = max(scp_code, key=lambda x: float(x[1]))
             highest_scp_code, value = useful_scp_code
+            if 'ASMI' not in highest_scp_code:
+                continue
             output_dir = imagesPath / highest_scp_code.strip()
 
             # Check if the directory has 100 images already
             if len(list(output_dir.glob("*.png"))) >= 100:
                 print(f"Directory {output_dir} already has 100 images. Skipping.")
                 continue
-
+            
             # Extract the study number from the file name
             study_num = hea_file_path.stem
             print(f"Processing file {hea_file_path}")
-
+            print(f'Length of directory: {len(list(output_dir.glob("*.png")))}')
             # Read the raw ECG signal data
             rd_record = wfdb.rdrecord(str(hea_file_path.with_suffix("")))
             ecg_data = rd_record.p_signal
@@ -122,6 +123,6 @@ with open(csv_file) as file_obj:
             break
 
         # Check memory usage
-        if memory_usage() > 1000:  # Example threshold in MB
-            print("Memory usage is too high, stopping.")
-            break
+        # if memory_usage() > 1000:  # Example threshold in MB
+        #     print("Memory usage is too high, stopping.")
+        #     break

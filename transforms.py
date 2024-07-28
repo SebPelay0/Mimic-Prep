@@ -57,7 +57,10 @@ testTransforms = transforms.Compose([resize, transforms.ToTensor()])
 ##CREATE TRAINING AND TESTING DATASET FROM SORTED DIRECTORIES
 
 trainingDataset = ImageFolder(root=trainPath, transform=trainTransforms)
+
+print(trainingDataset.classes)
 testingDataset = ImageFolder(root=testPath, transform=testTransforms)
+print(testingDataset.classes)
 ##these datasets are lists of tuples, can simply be accessed via trainingDataset[i]
 ##each entry is a tuple of (value, label)
 ## value is the actual signal image and label is the SCP code with the highest confidence rating
