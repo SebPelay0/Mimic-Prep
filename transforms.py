@@ -71,7 +71,12 @@ print("[INFO] creating training and validation set dataloaders...")
 
 #Our batch size determines how many image samples are sent to the model at a time
 trainDataLoader = DataLoader(trainingDataset, batch_size=BATCH_SIZE, shuffle=True)
-valDataLoader = DataLoader(testingDataset, batch_size=BATCH_SIZE)
+testDataLoader = DataLoader(testingDataset, batch_size=BATCH_SIZE)
+trainBatch = next(iter(trainDataLoader))
+testBatch = next(iter(testDataLoader))
+# visualize the training and validation set batches
+print("[INFO] visualizing training and validation batch...")
+
 
 ##from this point implement those batch visualisation functions? 
 
@@ -90,4 +95,6 @@ def show_batch(dl):
         plt.show()
         break;
 
-show_batch(trainDataLoader)
+print(testDataLoader)
+
+##show_batch(trainDataLoader)
