@@ -1,11 +1,21 @@
-import wfdb
+#!/usr/bin/env python3
+
+import os
+import sys
+import re
+import gc
 from pathlib import Path
 import csv
-import pandas as pd
-import os
-import re
 import matplotlib.pyplot as plt
+import wfdb
+import psutil
 
+# Define the directory containing the patient folders
+root_dir = Path(__file__).resolve().parent.parent
+dataPath = root_dir / "physionet.org/files"
+imagesPath = root_dir / "data"
+
+# Define the SCP codes
 classes = [
     "NORM",
     "IMI",
@@ -18,40 +28,40 @@ classes = [
     "NST_",
     "CRBBB",
 ]
-# Define the directory containing the patient folders
-root_dir = Path(__file__).resolve().parent.parent
-dataPath = root_dir / "physionet.org/files"
 
-imagesPath = root_dir / "data"
-
-# make folder for each of the 10 SCP codes
+# Create folders for each SCP code if they don't exist
 for label in classes:
-    class_path = os.path.join(imagesPath, label.strip())
-    if not (os.path.exists(class_path)):
-        os.makedirs(class_path)
-        print("made directory" + class_path)
+    class_path = imagesPath / label.strip()
+    class_path.mkdir(parents=True, exist_ok=True)
 
 # Use rglob to find the main CSV file
-csv_files = list(dataPath.rglob("ptbxl_database.csv"))[0]
-
-# Define the output data structure
-data_records = []
+csv_files = list(dataPath.rglob("ptbxl_database.csv"))
+if not csv_files:
+    print("Error: CSV file not found")
+    sys.exit(1)
+csv_file = csv_files[0]
 
 # Define the path to the raw ECG signal records
 ecg_data_path = root_dir / "physionet.org/files/ptb-xl/1.0.3"
 
 
-def all_directories_have_20_images(images_path, classes):
-    """Check if all directories have at least 20 images."""
+def all_directories_have_100_images(images_path, classes):
+    """Check if all directories have at least 100 images."""
     for label in classes:
         class_path = images_path / label.strip()
-        if len(list(class_path.glob("*.png"))) < 20:
+        if len(list(class_path.glob("*.png"))) < 100:
             return False
     return True
 
 
+def memory_usage():
+    """Get current memory usage."""
+    process = psutil.Process(os.getpid())
+    return process.memory_info().rss / 1024 / 1024  # Memory in MB
+
+
 # Iterate through the rows in the CSV database
-with open(csv_files) as file_obj:
+with open(csv_file) as file_obj:
     reader_obj = csv.reader(file_obj)
     headers = next(reader_obj)  # Read the header row
     filename_lr_index = headers.index("filename_lr")  # Get the index of filename_lr
@@ -65,7 +75,6 @@ with open(csv_files) as file_obj:
         hea_file_path = ecg_data_path / filename_lr
         if not hea_file_path.with_suffix(".hea").exists():
             print(f"Error: .hea file {hea_file_path} does not exist.")
-            break
             continue
 
         try:
@@ -75,10 +84,9 @@ with open(csv_files) as file_obj:
             highest_scp_code, value = useful_scp_code
             output_dir = imagesPath / highest_scp_code.strip()
 
-            # Check if the directory has 20 images already
-            if len(list(output_dir.glob("*.png"))) >= 20:
-                print(f"Directory {output_dir} already has 20 images. Skipping.")
-                plt.close(fig)
+            # Check if the directory has 100 images already
+            if len(list(output_dir.glob("*.png"))) >= 100:
+                print(f"Directory {output_dir} already has 100 images. Skipping.")
                 continue
 
             # Extract the study number from the file name
@@ -86,21 +94,10 @@ with open(csv_files) as file_obj:
             print(f"Processing file {hea_file_path}")
 
             # Read the raw ECG signal data
-            # .hea files contain header information while .dat files and others contain the signal data
             rd_record = wfdb.rdrecord(str(hea_file_path.with_suffix("")))
             ecg_data = rd_record.p_signal
 
-            # Print out the attributes of the record object [useful if you want to see whats inside the wfdb record]
-            # attributes = [
-            #     attr
-            #     for attr in dir(record)
-            #     if not callable(getattr(record, attr)) and not attr.startswith("__")
-            # ]
-            # for attr in attributes:
-            #     print(f"{attr}: {getattr(record, attr)}")
-
-            # row[1] indicates patientId
-            # Append the data to the output structure
+            # Plot and save the ECG data
             fig = wfdb.plot_wfdb(
                 record=rd_record,
                 figsize=(24, 18),
@@ -112,6 +109,7 @@ with open(csv_files) as file_obj:
             output_file_path = output_dir / f"{study_num}.png"
             fig.savefig(output_file_path)
             plt.close(fig)
+            gc.collect()  # Explicitly trigger garbage collection
 
             print(f"Saved image to {output_file_path}")
         except Exception as e:
@@ -119,6 +117,11 @@ with open(csv_files) as file_obj:
             continue
 
         # Check if all directories have 20 images
-        if all_directories_have_20_images(imagesPath, classes):
-            print("All directories have at least 20 images. Stopping.")
+        if all_directories_have_100_images(imagesPath, classes):
+            print("All directories have at least 100 images. Stopping.")
+            break
+
+        # Check memory usage
+        if memory_usage() > 1000:  # Example threshold in MB
+            print("Memory usage is too high, stopping.")
             break
