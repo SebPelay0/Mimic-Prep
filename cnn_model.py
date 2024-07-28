@@ -10,13 +10,55 @@ import torch.nn as nn
 import torch.nn.functional as F
 import sys
 from pathlib import Path
-from transforms import testingDataset, trainingDataset, trainDataLoader, testDataLoader, BATCH_SIZE
+from torchvision.utils import make_grid
+import matplotlib.pyplot as plt
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data import random_split
+#from transforms import testingDataset, trainingDataset, trainDataLoader, testDataLoader, BATCH_SIZE
 root_dir = Path(__file__).resolve().parent
 dataPath = root_dir / 'SampleData'
 trainPath = root_dir / "data"
 testPath = root_dir / "test"
 
 
+
+trainDataset = ImageFolder(trainPath,transform = transforms.Compose([
+    transforms.Resize((150,150)),transforms.ToTensor()
+]))
+testDataset = ImageFolder(testPath,transforms.Compose([
+    transforms.Resize((150,150)),transforms.ToTensor()
+]))
+
+img, label = trainDataset[0]
+print(img.shape,label)
+print("Follwing classes are there : \n",trainDataset.imgs)
+
+
+batch_size = 8
+val_size = 60
+train_size = len(trainDataset) - val_size 
+
+train_data,val_data = random_split(trainDataset,[train_size,val_size])
+print(f"Length of Train Data : {len(train_data)}")
+print(f"Length of Validation Data : {len(val_data)}")
+
+#output
+#Length of Train Data : 12034
+#Length of Validation Data : 2000
+
+#load the train and validation into batches.
+train_dl = DataLoader(train_data, batch_size, shuffle = True, num_workers = 4, pin_memory = True)
+val_dl = DataLoader(val_data, batch_size*2, num_workers = 4, pin_memory = True)
+def show_batch(dl):
+    """Plot images grid of single batch"""
+    for images, labels in dl:
+        fig,ax = plt.subplots(figsize = (16,12))
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.imshow(make_grid(images,nrow=16).permute(1,2,0))
+        plt.show()
+        break
+        
 
 def to_device(data, device):
     "Move data to the device"
@@ -46,13 +88,18 @@ class DeviceDataLoader:
 
 device = get_default_device()
 
-trainDataLoader = DeviceDataLoader(trainDataLoader, device)
-testDataLoader = DeviceDataLoader(testDataLoader, device)
+train_dl = DeviceDataLoader(train_dl, device)
+val_dl = DeviceDataLoader(val_dl, device)
+model = to_device(EcgAnnotationClassification(), device)
+to_device(model, device)
 
 # Define model and training functions
 class ImageClassificationBase(nn.Module):
     def training_step(self, batch):
         images, labels = batch
+        print(images)
+
+        print(labels)
         out = self(images)  # Generate predictions
         loss = F.cross_entropy(out, labels)  # Calculate loss
         return loss
@@ -74,15 +121,7 @@ class ImageClassificationBase(nn.Module):
     def epoch_end(self, epoch, result):
         print("Epoch [{}], train_loss: {:.4f}, val_loss: {:.4f}, val_acc: {:.4f}".format(epoch, result["train_loss"], result["val_loss"], result["val_acc"]))
 
-def get_conv_output_size(model, input_shape):
-    dummy_input = torch.randn(1, *input_shape)
-    dummy_output = model(dummy_input)
-    return dummy_output.numel()
-
-
 class EcgAnnotationClassification(ImageClassificationBase):
-
-    
     def __init__(self):
         super().__init__()
         self.network = nn.Sequential(
@@ -103,17 +142,6 @@ class EcgAnnotationClassification(ImageClassificationBase):
             nn.MaxPool2d(2, 2),
             nn.Flatten(),
             nn.Linear(82944, 1024),
-            nn.ReLU(),
-            nn.Linear(1024, 512),
-            nn.ReLU(),
-            nn.Linear(512, 6),
-
-            
-        )
-
-        conv_output_size = get_conv_output_size(self.network, (3, 128, 128))
-        self.fc = nn.Sequential(
-            nn.Linear(conv_output_size, 1024),
             nn.ReLU(),
             nn.Linear(1024, 512),
             nn.ReLU(),
@@ -161,8 +189,7 @@ model = to_device(EcgAnnotationClassification(), device)
 num_epochs = 30
 opt_func = torch.optim.Adam
 lr = 0.001
-history = fit(num_epochs, lr, model, trainDataLoader, testDataLoader, opt_func)
-
+history = fit(num_epochs, lr, model, train_dl, val_dl, opt_func)
 # Plotting functions
 def plot_accuracies(history):
     accuracies = [x["val_acc"] for x in history]
