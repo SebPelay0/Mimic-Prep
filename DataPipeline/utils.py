@@ -3,7 +3,8 @@ import os
 import numpy as np
 import shutil
 import sys
-root_dir = Path(__file__).resolve().parent
+import random
+root_dir = Path(__file__).resolve().parent.parent
 dataPath = root_dir / "physionet.org/files"
 trainPath = root_dir / "data"
 testPath = root_dir / "test"
@@ -30,40 +31,42 @@ def getFileList(folder):
 	return fileList
 
 
+##for train test split do pathList = someList(randint(1, len(list)))
 
-#takes a list of all file paths within a given folder, copies to target then removes from original folder
 
-#to move into test directories, targetPath =>  testPath = root_dir / "test"
-def transferFilesAcrossDatasets(pathList, targetPath):
+def transferFileAcrossDatasets(path, targetPath):
 	# check if the destination folder exists and if not create it
 	if not os.path.exists(targetPath):
 		os.makedirs(targetPath)
 	# loop over the image paths
-	for path in pathList:
-		# grab image name and its label from the path and create
-		# a placeholder corresponding to the separate label folder
-		
-		imageName = path.split(os.path.sep)[-1]
-		label = path.split(os.path.sep)[-2]
-		labelFolder = os.path.join(targetPath, label)
-		print(path)
-		print(f"{imageName} {label} {labelFolder}")
-		sys.exit(1)
-		# check to see if the label folder exists and if not create it
-		if not os.path.exists(labelFolder):
-			os.makedirs(labelFolder)
-		# construct the destination image path and copy the current
-		# image to it
-		destination = os.path.join(labelFolder)
-		shutil.copy(path, destination)
+	
+	imageName = path.split(os.path.sep)[-1]
+	label = path.split(os.path.sep)[-2]
+	labelFolder = os.path.join(targetPath, label)
+	# print(f"{imageName} {label} {labelFolder}")
+	# sys.exit(1)
+	
+	# check to see if the label folder exists and if not create it
+	if not os.path.exists(labelFolder):
+		os.makedirs(labelFolder)
+	# construct the destination image path and copy the current
+	# image to it
+	
+	destination = os.path.join(labelFolder)
+	#copy to target
+	shutil.copy(path, destination)
+	## remove file from source
+	os.remove(path)
+	print(f"Moved {imageName} from {path} to {destination}")
 		
 exampleSource = trainPath / 'NORM'
 exampleTarget = testPath
 
-sourceList = getFileList(exampleSource)
-transferFilesAcrossDatasets(sourceList, exampleTarget)
+# sourceList = getFileList(exampleSource)
+# transferFilesAcrossDatasets(sourceList, exampleTarget)
 
-#transferFilesAcrossDatasets(sourcePath, exampleTarget)
+
+testFile = getFileList(trainPath / 'NORM')[-1]
 
 
 

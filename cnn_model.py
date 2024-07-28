@@ -12,15 +12,24 @@ from pathlib import Path
 from torchvision.utils import make_grid
 
 
+
+
 def main():
     root_dir = Path(__file__).resolve().parent
     trainPath = root_dir / "data"
     testPath = root_dir / "test"
+    horizontalFlipProbability = 0.20
+    verticalFlipProbability = 0.20
+    rotationDegrees = 15
+    hFlip = transforms.RandomHorizontalFlip(horizontalFlipProbability)
+    vFlip = transforms.RandomVerticalFlip(verticalFlipProbability)
+    rotate = transforms.RandomRotation(degrees=rotationDegrees)
+
 
     trainDataset = ImageFolder(
         trainPath,
         transform=transforms.Compose(
-            [transforms.Resize((150, 150)), transforms.ToTensor()]
+            [transforms.Resize((150, 150)), hFlip, vFlip, transforms.ToTensor()]
         ),
     )
     testDataset = ImageFolder(
@@ -28,8 +37,9 @@ def main():
         transforms.Compose([transforms.Resize((150, 150)), transforms.ToTensor()]),
     )
 
+    ##try experimenting batch_size = 16, when i tried it would sometimes crash due to memory issues
     batch_size = 8
-    val_size = 60
+    val_size = len(testDataset)
     train_size = len(trainDataset) - val_size
 
     train_data, val_data = random_split(trainDataset, [train_size, val_size])
@@ -48,7 +58,7 @@ def main():
             ax.imshow(make_grid(images, nrow=16).permute(1, 2, 0))
             plt.show()
             break
-
+  
     class ImageClassificationBase(nn.Module):
 
         def training_step(self, batch):
@@ -83,29 +93,42 @@ def main():
         return torch.tensor(torch.sum(preds == labels).item() / len(preds))
 
     class EcgAnnotationClassification(ImageClassificationBase):
-
+        ##I added some batch normalisation layers into the model to prevent that accuracy stalling we saw before
+        ##Added dropout layers to prevent overfitting
+        '''train_loss and val_loss should be similar, if train_loss >> val_loss
+        that indicates that the model performs much better on the training data than testing data, 
+        indicating overfitting. The opposite would indicate underfitting,'''
         def __init__(self):
 
             super().__init__()
             self.network = nn.Sequential(
                 nn.Conv2d(3, 32, kernel_size=3, padding=1),
                 nn.ReLU(),
+                nn.BatchNorm2d(32),
                 nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
                 nn.ReLU(),
+                nn.BatchNorm2d(64),
                 nn.MaxPool2d(2, 2),
                 nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
                 nn.ReLU(),
+                nn.BatchNorm2d(128),
                 nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
                 nn.ReLU(),
+                nn.BatchNorm2d(128),
                 nn.MaxPool2d(2, 2),
+                nn.Dropout(0.25),
                 nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
                 nn.ReLU(),
+                nn.BatchNorm2d(256),
                 nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
                 nn.ReLU(),
+                nn.BatchNorm2d(256),
                 nn.MaxPool2d(2, 2),
+                nn.Dropout(0.25),
                 nn.Flatten(),
                 nn.Linear(82944, 1024),
                 nn.ReLU(),
+                
                 nn.Linear(1024, 512),
                 nn.ReLU(),
                 nn.Linear(
@@ -191,9 +214,8 @@ def main():
     # Train the model
     num_epochs = 30
     opt_func = torch.optim.Adam
-    lr = 0.001
+    lr = 0.00001
     history = fit(num_epochs, lr, model, train_dl, val_dl, opt_func)
-
     # Plotting functions
     def plot_accuracies(history):
         accuracies = [x["val_acc"] for x in history]
@@ -201,6 +223,7 @@ def main():
         plt.xlabel("epoch")
         plt.ylabel("accuracy")
         plt.title("Accuracy vs. No. of epochs")
+        plt.show
 
     def plot_losses(history):
         train_losses = [x.get("train_loss") for x in history]
