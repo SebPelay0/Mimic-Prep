@@ -14,6 +14,9 @@ from torchvision import transforms
 import matplotlib.pyplot as plt
 import torch
 import sys
+import math
+from torchvision.utils import make_grid
+import matplotlib.pyplot as plt
 
 ##idk i can't import these from PTBPipeline.py I think I dont have permissions?
 root_dir = Path(__file__).resolve().parent
@@ -29,7 +32,6 @@ testPath = root_dir / "test"
 INPUT_HEIGHT = 128
 INPUT_WIDTH = 128
 BATCH_SIZE = 8
-
 #define probability values on how likely it is that each image is flipped, to introduce more variety into dataset
 horizontalFlipProbability = 0.25
 verticalFlipProbability = 0.25
@@ -72,3 +74,20 @@ trainDataLoader = DataLoader(trainingDataset, batch_size=BATCH_SIZE, shuffle=Tru
 valDataLoader = DataLoader(testingDataset, batch_size=BATCH_SIZE)
 
 ##from this point implement those batch visualisation functions? 
+
+
+#Display a single batch as a grid of images
+def show_batch(dl):
+    for images, labels in dl:
+        fig,ax = plt.subplots(figsize = (4,4))
+        ax.set_xticks([])
+        ax.set_yticks([])
+        nrows = math.ceil(BATCH_SIZE/2)
+    
+        ax.imshow(make_grid(images,nrow=nrows).permute(1,2,0))
+        plt.tight_layout()
+        plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        plt.show()
+        break;
+
+show_batch(trainDataLoader)
