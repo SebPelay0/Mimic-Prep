@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import sys
 from pathlib import Path
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchvision.utils import make_grid
 
 
@@ -18,9 +19,9 @@ def main():
     root_dir = Path(__file__).resolve().parent
     trainPath = root_dir / "data"
     testPath = root_dir / "test"
-    horizontalFlipProbability = 0.20
-    verticalFlipProbability = 0.20
-    rotationDegrees = 15
+    horizontalFlipProbability = 0.40
+    verticalFlipProbability = 0.40
+    rotationDegrees = 20
     hFlip = transforms.RandomHorizontalFlip(horizontalFlipProbability)
     vFlip = transforms.RandomVerticalFlip(verticalFlipProbability)
     rotate = transforms.RandomRotation(degrees=rotationDegrees)
@@ -39,16 +40,19 @@ def main():
 
     ##try experimenting batch_size = 16, when i tried it would sometimes crash due to memory issues
     batch_size = 8
-    val_size = len(testDataset)
-    train_size = len(trainDataset) - val_size
+    # val_size = len(testDataset)
+    # train_size = len(trainDataset) - val_size
 
-    train_data, val_data = random_split(trainDataset, [train_size, val_size])
+    num_workers = 4
 
     train_dl = DataLoader(
-        train_data, batch_size, shuffle=True, num_workers=4, pin_memory=True
+        trainDataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True
     )
-    val_dl = DataLoader(val_data, batch_size * 2, num_workers=4, pin_memory=True)
+    val_dl = DataLoader(
+        testDataset, batch_size=batch_size * 2, num_workers=num_workers, pin_memory=True
+    )
 
+    
     def show_batch(dl):
         """Plot images grid of single batch"""
         for images, labels in dl:
@@ -109,6 +113,7 @@ def main():
                 nn.ReLU(),
                 nn.BatchNorm2d(64),
                 nn.MaxPool2d(2, 2),
+                nn.Dropout(0.25),
                 nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
                 nn.ReLU(),
                 nn.BatchNorm2d(128),
@@ -116,7 +121,7 @@ def main():
                 nn.ReLU(),
                 nn.BatchNorm2d(128),
                 nn.MaxPool2d(2, 2),
-                nn.Dropout(0.25),
+                nn.Dropout(0.50),
                 nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
                 nn.ReLU(),
                 nn.BatchNorm2d(256),
@@ -189,8 +194,18 @@ def main():
         return model.validation_epoch_end(outputs)
 
     def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
+        print('Beginning training...')
+        print(f"N = {len(testDataset) + len(trainDataset)}")
+        print(f"Number of training samples: {len(trainDataset)}")
+        print(f"Number of testing samples: {len(testDataset)}\n")
+        print(f"Number of SCP categories: {len(trainDataset.classes)}")
+        print(f"Number of training batches passed to the model: {len(train_dl)} (should correspond to number of training samples/batch_size)")
+        print(f"Number of testing batches passed to model: {len(val_dl)} (should correspond to number of testing samples/ 2*batch_size)")
         history = []
+        
         optimizer = opt_func(model.parameters(), lr)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
+        stepped = False
         for epoch in range(epochs):
             model.train()
             train_losses = []
@@ -205,6 +220,12 @@ def main():
             result["train_loss"] = torch.stack(train_losses).mean().item()
             model.epoch_end(epoch, result)
             history.append(result)
+            scheduler.step(result["val_loss"])
+            new_lr = scheduler.optimizer.param_groups[0]['lr']
+            if((lr != new_lr) & (stepped == False)):
+                print('Lr stepdown due to val_acc plateau!')
+                stepped = True
+            print(f"lr: {new_lr}\n")
 
         return history
 
@@ -214,7 +235,8 @@ def main():
     # Train the model
     num_epochs = 30
     opt_func = torch.optim.Adam
-    lr = 0.00001
+    #lr = 0.0001 with a stepdown has been working best for samplesize = 600. 
+    lr = 0.0001
     history = fit(num_epochs, lr, model, train_dl, val_dl, opt_func)
     # Plotting functions
     def plot_accuracies(history):
