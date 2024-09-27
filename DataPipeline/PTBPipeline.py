@@ -34,6 +34,7 @@ for label in classes:
     class_path = imagesPath / label.strip()
     class_path.mkdir(parents=True, exist_ok=True)
 
+
 # Use rglob to find the main CSV file
 csv_files = list(dataPath.rglob("ptbxl_database.csv"))
 if not csv_files:
