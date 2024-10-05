@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import wfdb
 import psutil
 import pandas as pd
-
+import numpy as np
 
 
 """This class initialises sample data folders and reads through the PTB-XL database
@@ -22,6 +22,7 @@ class DataLoader:
         self.root_dir = Path(__file__).resolve().parent.parent;
         self.dataPath = self.root_dir / "physionet.org/files";
         self.imagesPath = self.root_dir / "data";
+        self.signalsPath = self.root_dir / "data" / "signals"; 
         self.ecg_data_path = self.root_dir / "physionet.org/files/ptb-xl/1.0.3";
         self.csv_file = self.openPTBDataset()
         self.classes = ["NORM", 
@@ -56,7 +57,10 @@ class DataLoader:
         for label in self.classes:
             class_path = self.imagesPath / label.strip();
             class_path.mkdir(parents=True, exist_ok=True);
-    
+
+            class_signal_path = self.signalsPath / label.strip();
+            class_signal_path.mkdir(parents=True, exist_ok=True);
+
     def openPTBDataset(self):
         # Locate the main CSV file, should be installed in this path upon git pull
         csv_files = list(self.dataPath.rglob("ptbxl_database.csv"))
@@ -109,6 +113,7 @@ class DataLoader:
                     #     continue
 
                     output_dir = self.imagesPath / highest_scp_code.strip()
+                    signal_output_dir = self.signalsPath / highest_scp_code.strip()
 
                     # Check if the directory is at sample limit yet
                     if len(list(output_dir.glob("*.png"))) >= self.maxSamples:
@@ -122,6 +127,11 @@ class DataLoader:
                     # Read the raw ECG signal data
                     rd_record = wfdb.rdrecord(str(hea_file_path.with_suffix("")))
                     ecg_data = rd_record.p_signal
+
+                    # Save the signal data as CSV
+                    signal_output_path = signal_output_dir / f"{study_num}_signal.csv"
+                    np.savetxt(signal_output_path, ecg_data, delimiter=",")
+                    print(f"Saved signal data to {signal_output_path}")               
 
                     # Plot and save the ECG data
                     fig = wfdb.plot_wfdb(
@@ -151,4 +161,5 @@ class DataLoader:
 testDataLoader = DataLoader();
 #testDataLoader.addArrythmiaToClasses("TEST");
 testDataLoader.printMembers();
-testDataLoader.LoadData()
+testDataLoader.SetupClassFolders();
+testDataLoader.LoadData();
