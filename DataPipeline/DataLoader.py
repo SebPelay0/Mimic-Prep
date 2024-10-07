@@ -15,7 +15,8 @@ import numpy as np
 
 """This class initialises sample data folders and reads through the PTB-XL database
 currently, it is able generate images for the 10 most commonnly occuring SCP codes in the database. 
-The number of samples and arrythmias can be changed as needed. """
+The number of samples and arrythmias can be changed as needed."""
+
 class DataLoader:
     def __init__(self):
         # Initialize file paths and parameters
@@ -46,12 +47,13 @@ class DataLoader:
 
         #split between training and testing samples. 
         self.trainingRatio = 0.70
+
+
+    
     def printMembers(self):
         print("DataLoader Initialized with the following attributes:")
         for attribute, value in self.__dict__.items():
             print(f"{attribute}: {value}")
-    
-
     
     #newClass should be a string in the form "CRBB" idk how to show that in python
     def addArrythmiaToClasses(self, newClass):
