@@ -10,7 +10,8 @@ import wfdb
 import psutil
 import pandas as pd
 import numpy as np
-
+#import shutil
+#import random
 
 """This class initialises sample data folders and reads through the PTB-XL database
 currently, it is able generate images for the 10 most commonnly occuring SCP codes in the database. 
@@ -39,7 +40,12 @@ class DataLoader:
         self.chunksize = 1000; #where chunksize is how much of the csv we read at a time, adjust for perfomance issues. 
         self.maxSamples = 100;
         self.printMembers(); #show startup conditions
+        #paths to training and testing folders
+        self.testPath = self.root_dir / "test"
+        self.trainPath = self.root_dir / "data"
 
+        #split between training and testing samples. 
+        self.trainingRatio = 0.70
     def printMembers(self):
         print("DataLoader Initialized with the following attributes:")
         for attribute, value in self.__dict__.items():
@@ -156,6 +162,73 @@ class DataLoader:
                 if self.checkIfAtSampleLimit():
                     print("All directories have at least 100 images. Stopping.")
                     return
+                    
+
+    def makeTestFolders(self):
+        for label in self.classes:
+            newTestPath = os.path.join(self.testPath,label.strip())
+            if not (os.path.exists(newTestPath)):
+                os.makedirs(newTestPath)
+                print(f"New Directories: {newTestPath}")
+
+    """Get a list of all files in a folder"""
+    def getFileList(folder):
+        fileList = []
+        for file in os.listdir(folder):
+            if (os.path.isfile(os.path.join(folder, file))):
+                newFile = os.path.join(folder, file)
+                fileList.append(newFile)
+                
+        return fileList
+
+
+    """Helpers to easily move files"""
+    #need shutil and random imported for these, didnt wanna add just before demo in case it breaks
+
+    # def transferFileAcrossDatasets(path, targetPath):
+    #     # check if the destination folder exists and if not create it
+    #     if not os.path.exists(targetPath):
+    #         os.makedirs(targetPath)
+    #     # loop over the image paths
+        
+    #     imageName = path.split(os.path.sep)[-1]
+    #     label = path.split(os.path.sep)[-2]
+    #     labelFolder = os.path.join(targetPath, label)
+    #     # print(f"{imageName} {label} {labelFolder}")
+    #     # sys.exit(1)
+        
+    #     # check to see if the label folder exists and if not create it
+    #     if not os.path.exists(labelFolder):
+    #         os.makedirs(labelFolder)
+    #     # construct the destination image path and copy the current
+    #     # image to it
+        
+    #     destination = os.path.join(labelFolder)
+    #     #copy to target
+    #     shutil.copy(path, destination)
+    #     ## remove file from source
+    #     os.remove(path)
+    #     print(f"Moved {imageName} from {path} to {destination}")
+
+    # def trainTestSplit (self):
+    #     for label in self.classes:
+    #         fileList = self.getFileList(os.path.join(self.trainPath, label.strip()))
+    #         if (fileList):
+    #             #this is scuffed af 
+    #             index = len(fileList)
+    #             for file in fileList:
+    #                 try:
+    #                     if((random.randint(1,100) >= self.trainingRatio * 100)):
+    #                         self.transferFileAcrossDatasets(fileList[random.randint(0, index)], self.testPath)
+    #                         index -= 1
+    #                         print('transferred')
+    #                     else:
+    #                         print('no transfer')
+    #                 except Exception as e:
+    #                     print('File not found')
+    #                     continue
+
+    
 
 
 testDataLoader = DataLoader();
