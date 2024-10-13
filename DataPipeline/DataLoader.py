@@ -9,12 +9,14 @@ import matplotlib.pyplot as plt
 import wfdb
 import psutil
 import pandas as pd
-
-
+import numpy as np
+#import shutil
+#import random
 
 """This class initialises sample data folders and reads through the PTB-XL database
 currently, it is able generate images for the 10 most commonnly occuring SCP codes in the database. 
-The number of samples and arrythmias can be changed as needed. """
+The number of samples and arrythmias can be changed as needed."""
+
 class DataLoader:
     def __init__(self):
         # Initialize file paths and parameters
@@ -22,6 +24,7 @@ class DataLoader:
         self.root_dir = Path(__file__).resolve().parent.parent;
         self.dataPath = self.root_dir / "physionet.org/files";
         self.imagesPath = self.root_dir / "data";
+        self.signalsPath = self.root_dir / "data" / "signals"; 
         self.ecg_data_path = self.root_dir / "physionet.org/files/ptb-xl/1.0.3";
         self.csv_file = self.openPTBDataset()
         self.classes = ["NORM", 
@@ -38,13 +41,19 @@ class DataLoader:
         self.chunksize = 1000; #where chunksize is how much of the csv we read at a time, adjust for perfomance issues. 
         self.maxSamples = 100;
         self.printMembers(); #show startup conditions
+        #paths to training and testing folders
+        self.testPath = self.root_dir / "test"
+        self.trainPath = self.root_dir / "data"
 
+        #split between training and testing samples. 
+        self.trainingRatio = 0.70
+
+
+    
     def printMembers(self):
         print("DataLoader Initialized with the following attributes:")
         for attribute, value in self.__dict__.items():
             print(f"{attribute}: {value}")
-    
-
     
     #newClass should be a string in the form "CRBB" idk how to show that in python
     def addArrythmiaToClasses(self, newClass):
@@ -56,7 +65,10 @@ class DataLoader:
         for label in self.classes:
             class_path = self.imagesPath / label.strip();
             class_path.mkdir(parents=True, exist_ok=True);
-    
+
+            class_signal_path = self.signalsPath / label.strip();
+            class_signal_path.mkdir(parents=True, exist_ok=True);
+
     def openPTBDataset(self):
         # Locate the main CSV file, should be installed in this path upon git pull
         csv_files = list(self.dataPath.rglob("ptbxl_database.csv"))
@@ -109,6 +121,7 @@ class DataLoader:
                     #     continue
 
                     output_dir = self.imagesPath / highest_scp_code.strip()
+                    signal_output_dir = self.signalsPath / highest_scp_code.strip()
 
                     # Check if the directory is at sample limit yet
                     if len(list(output_dir.glob("*.png"))) >= self.maxSamples:
@@ -122,6 +135,11 @@ class DataLoader:
                     # Read the raw ECG signal data
                     rd_record = wfdb.rdrecord(str(hea_file_path.with_suffix("")))
                     ecg_data = rd_record.p_signal
+
+                    # Save the signal data as CSV
+                    signal_output_path = signal_output_dir / f"{study_num}_signal.csv"
+                    np.savetxt(signal_output_path, ecg_data, delimiter=",")
+                    print(f"Saved signal data to {signal_output_path}")               
 
                     # Plot and save the ECG data
                     fig = wfdb.plot_wfdb(
@@ -146,9 +164,77 @@ class DataLoader:
                 if self.checkIfAtSampleLimit():
                     print("All directories have at least 100 images. Stopping.")
                     return
+                    
+
+    def makeTestFolders(self):
+        for label in self.classes:
+            newTestPath = os.path.join(self.testPath,label.strip())
+            if not (os.path.exists(newTestPath)):
+                os.makedirs(newTestPath)
+                print(f"New Directories: {newTestPath}")
+
+    """Get a list of all files in a folder"""
+    def getFileList(folder):
+        fileList = []
+        for file in os.listdir(folder):
+            if (os.path.isfile(os.path.join(folder, file))):
+                newFile = os.path.join(folder, file)
+                fileList.append(newFile)
+                
+        return fileList
+
+
+    """Helpers to easily move files"""
+    #need shutil and random imported for these, didnt wanna add just before demo in case it breaks
+
+    # def transferFileAcrossDatasets(path, targetPath):
+    #     # check if the destination folder exists and if not create it
+    #     if not os.path.exists(targetPath):
+    #         os.makedirs(targetPath)
+    #     # loop over the image paths
+        
+    #     imageName = path.split(os.path.sep)[-1]
+    #     label = path.split(os.path.sep)[-2]
+    #     labelFolder = os.path.join(targetPath, label)
+    #     # print(f"{imageName} {label} {labelFolder}")
+    #     # sys.exit(1)
+        
+    #     # check to see if the label folder exists and if not create it
+    #     if not os.path.exists(labelFolder):
+    #         os.makedirs(labelFolder)
+    #     # construct the destination image path and copy the current
+    #     # image to it
+        
+    #     destination = os.path.join(labelFolder)
+    #     #copy to target
+    #     shutil.copy(path, destination)
+    #     ## remove file from source
+    #     os.remove(path)
+    #     print(f"Moved {imageName} from {path} to {destination}")
+
+    # def trainTestSplit (self):
+    #     for label in self.classes:
+    #         fileList = self.getFileList(os.path.join(self.trainPath, label.strip()))
+    #         if (fileList):
+    #             #this is scuffed af 
+    #             index = len(fileList)
+    #             for file in fileList:
+    #                 try:
+    #                     if((random.randint(1,100) >= self.trainingRatio * 100)):
+    #                         self.transferFileAcrossDatasets(fileList[random.randint(0, index)], self.testPath)
+    #                         index -= 1
+    #                         print('transferred')
+    #                     else:
+    #                         print('no transfer')
+    #                 except Exception as e:
+    #                     print('File not found')
+    #                     continue
+
+    
 
 
 testDataLoader = DataLoader();
 #testDataLoader.addArrythmiaToClasses("TEST");
 testDataLoader.printMembers();
-testDataLoader.LoadData()
+testDataLoader.SetupClassFolders();
+testDataLoader.LoadData();
