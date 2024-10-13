@@ -74,5 +74,5 @@ def trainTestSplit (trainPath, testPath, trainingRatio):
                     print('File not found')
                     continue
         
-
-trainTestSplit(trainPath, testPath, 0.70)
+#Running this again will mess up current layout
+trainTestSplit(trainPath, testPath, 0.80)
