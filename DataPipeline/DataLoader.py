@@ -170,7 +170,16 @@ class DataLoader:
         """Retrieves the MIMIC-III specific .dat and .hea files and saves ECG/ABP/PAP plots."""
         counter = 0
 
-        # change this later to use self.rootdir
+        # Load ECG_NOTEEVENTS.csv
+        ecg_notes_csv_path = self.dataPath / "mimic3" / "ECG_NOTEEVENTS.csv"
+        if not ecg_notes_csv_path.exists():
+            print(f"Error: ECG_NOTEEVENTS.csv not found at {ecg_notes_csv_path}")
+            return
+
+        ecg_notes_df = pd.read_csv(ecg_notes_csv_path)
+        # Create a dictionary mapping SUBJECT_ID to TEXT
+        subject_text_dict = pd.Series(ecg_notes_df.iloc[:, 10].values, index=ecg_notes_df.iloc[:, 1]).to_dict()
+
         input_directory = self.mimicDataPath
         output_directory = self.imagesPath
 
@@ -181,9 +190,16 @@ class DataLoader:
                         continue
 
                     file_stem = file.split(".")[0]
-                    file_path = os.path.join(
-                        os.path.join(self.mimicDataPath, dir), file_stem
-                    )
+                    file_path = os.path.join(os.path.join(self.mimicDataPath, dir), file_stem)
+
+                    # Extract subject_id from dir (assuming dir is 'pXXXXX')
+                    subject_id = int(dir[1:])
+
+                    # Get the report text for the subject
+                    if subject_id in subject_text_dict:
+                        text = subject_text_dict[subject_id]
+                    else:
+                        text = "No report text available."
 
                     # Read ECG/ABP/PAP data
                     rd_record = wfdb.rdrecord(str(file_path))
@@ -209,7 +225,13 @@ class DataLoader:
                     plt.close(fig)
                     gc.collect()  # Trigger garbage collection if needed
 
+                    # Save the text to a file
+                    text_file_path = output_directory_path / f"{file_stem}.txt"
+                    with open(text_file_path, 'w') as f:
+                        f.write(text)
+
                     print(f"Saved image to {output_file_path}")
+                    print(f"Saved text to {text_file_path}")
                     counter += 1
 
                 except Exception as e:
