@@ -23,7 +23,9 @@ class DataLoader:
         self.root_dir = Path(__file__).resolve().parent.parent
         self.dataPath = self.root_dir / "physionet.org/files"
         self.imagesPath = self.root_dir / "data"
-        self.ecg_data_path = self.root_dir / "physionet.org/files/mimic3/p01"
+
+        self.mimicDataPath = self.root_dir / "physionet.org/files/mimic3/p01"
+
         # self.csv_file = self.openPTBDataset()
         self.classes = [
             "NORM",
@@ -45,6 +47,8 @@ class DataLoader:
 
 
     """HELPER FUNCTIONS"""
+
+
     def printMembers(self):
         print("DataLoader Initialized with the following attributes:")
         for attribute, value in self.__dict__.items():
@@ -78,28 +82,24 @@ class DataLoader:
             if len(list(class_path.glob("*.png"))) < self.maxSamples:
                 return False
             return True
-        
 
     def getTimeStamp(filePath):
         """Pass in the filePath to a header file, include the .hea extension. Returns a string of the timestamp"""
-        with open(filePath, 'r') as file:
+        with open(filePath, "r") as file:
             for line in file:
-                #split on a space 
-                parts = line.strip().split() 
+                # split on a space
+                parts = line.strip().split()
                 for part in parts:
-                    #check if it is a valid timestamp
-                    if(part.count(":") == 2):
+                    # check if it is a valid timestamp
+                    if part.count(":") == 2:
                         return part
-            
-        #if opeining failed.
+
+        # if opeining failed.
         return -1
 
-    # def checkMemUsage():
-    #     """Get current memory usage. Used to sanity check if loading process has stopped"""
-    #     process = psutil.Process(os.getpid())
-    #     return process.memory_info().rss / 1024 / 1024  # Memory in MB
-
     """BEGIN DATALOADING FUNCTIONS: """
+
+
     def LoadData(self):
         """Read through the CSV, filter, and process each row to generate images for selected SCP codes."""
         for chunk in pd.read_csv(self.csv_file, chunksize=self.chunksize):
@@ -109,7 +109,7 @@ class DataLoader:
                 filename_lr = row["filename_lr"]
 
                 # Define the path to the corresponding .hea file
-                hea_file_path = self.ecg_data_path / filename_lr
+                hea_file_path = self.mimicDataPath / filename_lr
                 if not hea_file_path.with_suffix(".hea").exists():
                     print(f"Error: .hea file {hea_file_path} does not exist.")
                     continue
@@ -170,51 +170,52 @@ class DataLoader:
         """Retrieves the MIMIC-III specific .dat and .hea files and saves ECG/ABP/PAP plots."""
         counter = 0
 
-        #change this later to use self.rootdir
-        input_directory = Path("physionet.org/files/mimic3/p01/p011279")
-        output_directory = Path("/Users/sky/Desktop/COMP/VIP/Mimic-Prep/data")
+        # change this later to use self.rootdir
+        input_directory = self.mimicDataPath
+        output_directory = self.imagesPath
 
-        for file in os.listdir(input_directory):
-            try:
-                if ".dat" not in file and ".hea" not in file:
+        for dir in os.listdir(input_directory):
+            for file in os.listdir(os.path.join(self.mimicDataPath, dir)):
+                try:
+                    if ".dat" not in file and ".hea" not in file:
+                        continue
+
+                    file_stem = file.split(".")[0]
+                    file_path = os.path.join(
+                        os.path.join(self.mimicDataPath, dir), file_stem
+                    )
+
+                    # Read ECG/ABP/PAP data
+                    rd_record = wfdb.rdrecord(str(file_path))
+
+                    # Display available signals and their names
+                    print(f"Signals: {rd_record.sig_name}")
+                    print(f"Shape of data: {rd_record.p_signal.shape}")
+
+                    # Plot and save the signals (adjusting the grid and style for each channel)
+                    fig = wfdb.plot_wfdb(
+                        record=rd_record,
+                        figsize=(24, 18),
+                        title="file",
+                        ecg_grids=None,
+                        return_fig=True,
+                    )
+
+                    output_directory_path = output_directory / f"{file_stem}"
+                    os.mkdir(output_directory_path)
+                    output_file_path = output_directory_path / f"{counter}.png"
+
+                    fig.savefig(output_file_path)
+                    plt.close(fig)
+                    gc.collect()  # Trigger garbage collection if needed
+
+                    print(f"Saved image to {output_file_path}")
+                    counter += 1
+
+                except Exception as e:
+                    print(f"Error processing file {file}: {e}")
                     continue
 
-                file_stem = file.split(".")[0]
-                file_path = input_directory / file_stem
-
-                # Read ECG/ABP/PAP data
-                rd_record = wfdb.rdrecord(str(file_path))
-
-                # Display available signals and their names
-                print(f"Signals: {rd_record.sig_name}")
-                print(f"Shape of data: {rd_record.p_signal.shape}")
-
-                # Plot and save the signals (adjusting the grid and style for each channel)
-                fig = wfdb.plot_wfdb(
-                    record=rd_record,
-                    figsize=(24, 18),
-                    title="file",
-                    ecg_grids=None,
-                    return_fig=True,
-    
-                )
-
-                output_directory_path = output_directory/f"{file_stem}"
-                os.mkdir(output_directory_path)
-                output_file_path = output_directory_path / f"{counter}.png"
-
-                fig.savefig(output_file_path)
-                plt.close(fig)
-                gc.collect()  # Trigger garbage collection if needed
-
-                print(f"Saved image to {output_file_path}")
-                counter += 1
-
-            except Exception as e:
-                print(f"Error processing file {file}: {e}")
-                continue
-
-        
 
 
 testDataLoader = DataLoader()
