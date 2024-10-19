@@ -23,7 +23,9 @@ class DataLoader:
         self.root_dir = Path(__file__).resolve().parent.parent
         self.dataPath = self.root_dir / "physionet.org/files"
         self.imagesPath = self.root_dir / "data"
+
         self.mimicDataPath = self.root_dir / "physionet.org/files/mimic3/p01"
+
         # self.csv_file = self.openPTBDataset()
         self.classes = [
             "NORM",
@@ -43,7 +45,9 @@ class DataLoader:
         self.printMembers()
         # show startup conditions
 
+
     """HELPER FUNCTIONS"""
+
 
     def printMembers(self):
         print("DataLoader Initialized with the following attributes:")
@@ -94,6 +98,7 @@ class DataLoader:
         return -1
 
     """BEGIN DATALOADING FUNCTIONS: """
+
 
     def LoadData(self):
         """Read through the CSV, filter, and process each row to generate images for selected SCP codes."""
@@ -210,6 +215,7 @@ class DataLoader:
                 except Exception as e:
                     print(f"Error processing file {file}: {e}")
                     continue
+
 
 
 testDataLoader = DataLoader()
