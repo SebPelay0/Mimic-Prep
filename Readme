@@ -1,0 +1,17 @@
+# Set up instructions
+
+To use the data loader made please run the following commands:
+
+- pip install -r requirements.txt
+
+If you are having issues after that you might want to check your python environment path variable using the following steps:
+
+1. cmd/ ctrl + shift + p to open the command palette
+2. search up 'Python: select interperator'
+3. select 'python 3.10.x'
+
+If you are using a mac make sure you have set up your virtual environment
+
+## Accessing all of the mimic3 .hea and .dat files
+
+Make sure you have git lfs installed: <https://git-lfs.com/>
