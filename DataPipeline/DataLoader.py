@@ -19,35 +19,14 @@ The number of samples and arrythmias can be changed as needed. """
 class DataLoader:
     def __init__(self):
         # Initialize file paths and parameters
-
         self.root_dir = Path(__file__).resolve().parent.parent
-        self.dataPath = self.root_dir / "physionet.org/files"
+        self.base_url = "https://physionet.org/files/mimic-iv-ecg-demo/0.1/"
+        self.data_base_name = "mimic-iv-ecg-demo/0.1"
+        self.max_records = 20
+        self.mimicDataPath = "mimic-iv-ecg-demo-diagnostic-electrocardiogram-matched-subset-demo-0.1/files"
         self.imagesPath = self.root_dir / "data"
 
-        self.mimicDataPath = self.root_dir / "physionet.org/files/mimic3/p01"
-
-        # self.csv_file = self.openPTBDataset()
-        self.classes = [
-            "NORM",
-            "IMI",
-            "NDT",
-            "ASMI",
-            "LVH",
-            "LAFB",
-            "IRBBB",
-            "CLBBB",
-            "NST_",
-            "CRBBB",
-        ]
-        self.chunksize = 1000
-        # where chunksize is how much of the csv we read at a time, adjust for perfomance issues.
-        self.maxSamples = 100
-        self.printMembers()
-        # show startup conditions
-
-
     """HELPER FUNCTIONS"""
-
 
     def printMembers(self):
         print("DataLoader Initialized with the following attributes:")
@@ -98,7 +77,6 @@ class DataLoader:
         return -1
 
     """BEGIN DATALOADING FUNCTIONS: """
-
 
     def LoadData(self):
         """Read through the CSV, filter, and process each row to generate images for selected SCP codes."""
@@ -166,8 +144,8 @@ class DataLoader:
                     print("All directories have at least 100 images. Stopping.")
                     return
 
-    def loadMimic3Data(self):
-        """Retrieves the MIMIC-III specific .dat and .hea files and saves ECG/ABP/PAP plots."""
+    def loadMimic4Data(self):
+        """Retrieves the MIMIC-IV specific .dat and .hea files and saves ECG/ABP/PAP plots."""
         counter = 0
 
         # change this later to use self.rootdir
@@ -175,51 +153,51 @@ class DataLoader:
         output_directory = self.imagesPath
 
         for dir in os.listdir(input_directory):
-            for file in os.listdir(os.path.join(self.mimicDataPath, dir)):
-                try:
-                    if ".dat" not in file and ".hea" not in file:
+            for dir_2 in os.listdir(os.path.join(input_directory, dir)):
+                path = os.path.join(input_directory, dir, dir_2)
+
+                for file in os.listdir(path):
+                    if ".hea" not in file:
                         continue
+                    try:
+                        file_stem = file.split(".")[0]
+                        file_path = os.path.join(os.path.join(path, file_stem))
 
-                    file_stem = file.split(".")[0]
-                    file_path = os.path.join(
-                        os.path.join(self.mimicDataPath, dir), file_stem
-                    )
+                        # Read ECG/ABP/PAP data
+                        rd_record = wfdb.rdrecord(str(file_path))
 
-                    # Read ECG/ABP/PAP data
-                    rd_record = wfdb.rdrecord(str(file_path))
+                        # Display available signals and their names
+                        print(f"Signals: {rd_record.sig_name}")
+                        print(f"Shape of data: {rd_record.p_signal.shape}")
 
-                    # Display available signals and their names
-                    print(f"Signals: {rd_record.sig_name}")
-                    print(f"Shape of data: {rd_record.p_signal.shape}")
+                        # ecg_data = rd_record.p_signal <- if we want to use the signal data instead
 
-                    # Plot and save the signals (adjusting the grid and style for each channel)
-                    fig = wfdb.plot_wfdb(
-                        record=rd_record,
-                        figsize=(24, 18),
-                        title="file",
-                        ecg_grids=None,
-                        return_fig=True,
-                    )
+                        # Plot and save the signals (adjusting the grid and style for each channel)
+                        fig = wfdb.plot_wfdb(
+                            record=rd_record,
+                            figsize=(24, 18),
+                            title="file",
+                            ecg_grids=None,
+                            return_fig=True,
+                        )
 
-                    output_directory_path = output_directory / f"{file_stem}"
-                    os.mkdir(output_directory_path)
-                    output_file_path = output_directory_path / f"{counter}.png"
+                        output_directory_path = output_directory / f"{file_stem}"
+                        os.mkdir(output_directory_path)
+                        output_file_path = output_directory_path / f"{counter}.png"
+                        fig.savefig(output_file_path)
+                        plt.close(fig)
+                        gc.collect()  # Trigger garbage collection if needed
 
-                    fig.savefig(output_file_path)
-                    plt.close(fig)
-                    gc.collect()  # Trigger garbage collection if needed
+                        print(f"Saved image to {output_file_path}")
+                        counter += 1
 
-                    print(f"Saved image to {output_file_path}")
-                    counter += 1
-
-                except Exception as e:
-                    print(f"Error processing file {file}: {e}")
-                    continue
-
+                    except Exception as e:
+                        print(f"Error processing file {file}: {e}")
+                        continue
 
 
 testDataLoader = DataLoader()
 # testDataLoader.addArrythmiaToClasses("TEST");
 # testDataLoader.printMembers()
 # testDataLoader.LoadData()
-testDataLoader.loadMimic3Data()
+testDataLoader.loadMimic4Data()
