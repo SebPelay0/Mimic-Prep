@@ -1,5 +1,3 @@
-3833579_layout 4 125 0 16:01:44.141
-~ 0 125/mV 9 0 -256 0 0 II
-~ 0 111/mV 11 0 -1024 0 0 V
-~ 0 125/mV 8 0 -128 0 0 MCL1
-~ 0 1/mmHg 9 0 -256 0 0 ABP
+version https://git-lfs.github.com/spec/v1
+oid sha256:56822b738664b1bc1b59d1de23aa9d96879262801065fe12c0c5f2bbad2a534d
+size 153
